@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=ISO-8859-1"
+      http-equiv="Content-Type">
+    <title>SQLToolKit/Sequence Documentation</title>
+  </head>
+  <body>
+    <h1>SQLToolKit/Sequence</h1>
+    <h2>Overview</h2>
+    SQLToolKit/Sequence (or STK/Sequence, or just Sequence) is an
+    implementation of SQL Sequences which uses MariaDB's Stored
+    Routines.<br>
+    The implementation follows PostgreSQL's manual pages as a guideline,
+    but there are some differences.<br>
+    SQLToolKit/Sequence is thread safe.<br>
+    <h2>Credits<br>
+    </h2>
+    Contact the author to ask for info, pay for support, or pay for a
+    new feature.<br>
+    Federico Razzoli<br>
+    Email: santec [At. riseup (DoT net<br>
+    Blog (en): <a href="http://falseisnotnull.wordpress.com/">FALSE IS
+      NOT NULL</a><br>
+    Blog (it): <a href="http://falsenonenull.wordpress.com/">FALSE non
+      &egrave; NULL</a><br>
+    <h2>License</h2>
+    This document is still unfinished. It may contain errors and is
+    incomplete. So, you are not allowed to re-distribute this unfinished
+    beta version of the manual. The author is sorry for this. As soon as
+    the manual will become stable, it will be release under a Free
+    license.<br>
+    Of course you can keep personal copies of this document, you can
+    modify them and print them.<br>
+    <br>
+    As noted in the source code, Sequence is released under the terms of
+    <a href="http://www.gnu.org/licenses/agpl-3.0.html">GNU Affero
+      General Public License (AGPL), version 3</a>. You should have
+    received the license with Sequence: it's the file named 'COPYING'.
+    If you did not receive it, please follow the link to the license and
+    read it.<br>
+    <h2>System requirements</h2>
+    Sequence is developed and tested with MariaDB 5.5. No plugins
+    required. Any OS.<br>
+    <br>
+    It can't work with MariaDB older versions and MySQL.<br>
+    <br>
+    Feedback about Percona Server is welcome.<br>
+    <h2>Getting started</h2>
+    Here is a simple example - but you can do more than this:<br>
+    <br>
+    <span style="font-family: monospace;">-- create sequence:
+      increment=5, min_value=1, max_value=100, start from 10.</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">-- TRUE means that when
+      my_sequence reaches max_value, it rotates.</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">CALL
+      `stk_sequence`.sequence_create('my_sequence', 5, 1, 100, TRUE, 10,
+      'This is a comment');</span><br style="font-family: monospace;">
+    <span style="font-family: monospace;">-- changed my mind.
+      min_value=1000, max_value=5000</span><br style="font-family:
+      monospace;">
+    <span style="font-family: monospace;">CALL
+      `stk_sequence`.sequence_alter('my_sequence', NULL, 1000, 2000,
+      NULL, NULL, NULL);</span><br style="font-family: monospace;">
+    <span style="font-family: monospace;">-- rename it</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">CALL
+      `stk_sequence`.sequence_rename('my_sequence', 'her_sequence');</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">-- increment value!</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.nextval('her_sequence'); -- 1000</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.nextval('her_sequence'); -- 1001</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.nextval('her_sequence'); -- 1002 ...</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">-- read last value generated
+      by this session for her_sequence</span><br style="font-family:
+      monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.currval('her_sequence');</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">-- read last value generated
+      by this session for any sequece</span><br style="font-family:
+      monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.lastval();</span><br style="font-family:
+      monospace;">
+    <span style="font-family: monospace;">-- drop sequence</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">CALL
+      `stk_sequence`.sequence_drop('her_sequence');</span><br
+      style="font-family: monospace;">
+    <span style="font-family: monospace;">SELECT
+      `stk_sequence`.sequence_exists('her_sequence'); -- 0</span><br>
+    <h2>Routines reference</h2>
+    TO-DO: explain routines<br>
+    <h3>Sequence Definition</h3>
+    VOID sequence_create(sequence_name, increment, min_value, max_value,
+    cycle, start comment)<br>
+    VOID sequence_alter(sequence_name, increment, min_value, max_value,
+    cycle, start comment)<br>
+    VOID sequence_rename(old_name, new_name)<br>
+    VOID sequence_drop(sequence_name)<br>
+    <h3>Sequence Manipulation/Query</h3>
+    BIGINT SIGNED netxval(sequence_name)<br>
+    BIGINT SIGNED currval(sequence_name)<br>
+    BIGINT SIGNED lastval()<br>
+    BIGINT SIGNED setval(sequence_name, new_value, is_called)<br>
+    <h3>Errors</h3>
+    When you call Sequence routines in a wrong way, there are 2 cases:<br>
+    <ul>
+      <li>You get an error.</li>
+      <li>You don't get any error, because you may know what you are
+        doing. It's something dirty, but you may exactly know what you
+        are doing.</li>
+    </ul>
+    All errors generated by Sequence set SQLSTATE to 45000. Messages are
+    in the following form:<br>
+    '[stk_sequence.routine_name] - Error message'<br>
+    This helps debugging, because the first part tells you:<br>
+    <ul>
+      <li>That the error was generated by Sequence.</li>
+      <li>The name of the routine which generated the error.<br>
+      </li>
+    </ul>
+    <h2>STK/Sequence and the future</h2>
+    If current implementation works good, there is no reason to
+    add/modify something. Unless users or paying clients ask for a new
+    feature. Paying is the most reliable method to ask a feature. If you
+    are considering this option, please contact the author.<br>
+    <br>
+    What will be done for sure:<br>
+    <ul>
+      <li>Bug fixes.<br>
+      </li>
+      <li>Keep the project updated, to be sure that will work correctly
+        (and as fast as possible) with future versions of MariaDB.</li>
+      <li>Paid technical support, if someone asks.</li>
+      <li>Free support for projects I may choose to support for
+        political reasons.<br>
+      </li>
+    </ul>
+    Things that you may want to request:<br>
+    <ul>
+      <li>Temporary (session) sequences.<br>
+      </li>
+      <li>String sequences.<br>
+      </li>
+      <li>Datetime sequences.</li>
+      <li>Triggers before/after value generation.<br>
+      </li>
+      <li>I don't know.<br>
+      </li>
+    </ul>
+    <br>
+  </body>
+</html>
