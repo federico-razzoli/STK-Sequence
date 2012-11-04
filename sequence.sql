@@ -1,5 +1,5 @@
 /*
-    SQLToolKit/Sequence 1.0.1g
+    SQLToolKit/Sequence 1.0.2g
 	Copyright Federico Razzoli 2012
 	
 	This file is part of SQLToolKit/Sequence.
@@ -54,18 +54,16 @@ USE `stk_sequence`;
 
 CREATE TABLE IF NOT EXISTS `SEQUENCES`
 (
-	`id`             BIGINT UNSIGNED  NOT NULL   AUTO_INCREMENT,
 	`SEQUENCE_NAME`  CHAR(64)         NOT NULL,
 	`INCREMENT`      INTEGER SIGNED   NOT NULL           COMMENT 'Default: 1',
 	`MINVALUE`       BIGINT SIGNED    NOT NULL           COMMENT 'Default: 0 or -9223372036854775808',
-	`MAXVALUE`       BIGINT SIGNED    NOT NULL           COMMENT 'Default: 9223372036854775808',
-	`CYCLE`          BOOLEAN          NOT NULL           COMMENT 'Default: FALSE',
-	`START`          BIGINT SIGNED    NOT NULL           COMMENT 'Default: min/max',
-	`CURRVAL`        BIGINT SIGNED    NULL DEFAULT NULL  COMMENT 'Default: NULL',
-	`COMMENT`        CHAR(64)         NOT NULL,
+	`MAXVALUE`       BIGINT SIGNED    NOT NULL           COMMENT 'Default: 9223372036854775808 or -1',
+	`CYCLE`          BOOLEAN          NOT NULL           COMMENT 'Default: FALSE; if TRUE, value can rotate',
+	`START`          BIGINT SIGNED    NOT NULL           COMMENT 'First generated value. Default: min/max',
+	`CURRVAL`        BIGINT SIGNED    NULL DEFAULT NULL  COMMENT 'Current value. Default: NULL',
+	`COMMENT`        CHAR(64)         NOT NULL           COMMENT 'Use this column to comment a SEQUENCE',
 	
-	PRIMARY KEY (`id`),
-	UNIQUE INDEX `uni_name` (`SEQUENCE_NAME`) USING HASH 
+	PRIMARY KEY (`SEQUENCE_NAME`)
 )
 	ENGINE = InnoDB
 	DEFAULT CHARACTER SET = ascii
@@ -502,7 +500,7 @@ CREATE FUNCTION `get_version`()
 	NO SQL
 	COMMENT 'Return version info'
 BEGIN
-	RETURN 'STK/Sequence 1.0.1g';
+	RETURN 'STK/Sequence 1.0.2g';
 END;
 
 

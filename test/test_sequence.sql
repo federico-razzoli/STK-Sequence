@@ -1,5 +1,5 @@
 /*
-    SQLToolKit/Sequence 1.0.1g
+    SQLToolKit/Sequence 1.0.2g
 	Copyright Federico Razzoli 2012
 	
 	This file is part of SQLToolKit/Sequence.
@@ -15,6 +15,11 @@
 	
     You should have received a copy of the GNU Affero General Public License
     along with SQLToolKit/Sequence.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+	Tests STK/Sequence using STK/Unit:
+	https://github.com/santec/STK-Unit
 */
 
 
