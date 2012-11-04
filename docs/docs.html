@@ -7,6 +7,29 @@
   </head>
   <body>
     <h1>SQLToolKit/Sequence</h1>
+    <span style="font-weight: bold;">Please, note that this document is
+      unfinished.</span> Check for the most recent version, or <span
+      style="font-style: italic;">refer to the documentation of
+      PostgreSQL 9.2</span> - this implementation tries to follow
+    pgsql's one.<br>
+    <ul>
+      <li><a
+          href="http://www.postgresql.org/docs/9.2/static/sql-createsequence.html">CREATE
+          SEQUENCE</a><br>
+      </li>
+      <li><a
+          href="http://www.postgresql.org/docs/9.2/static/sql-altersequence.html">ALTER
+          SEQUENCE</a><br>
+      </li>
+      <li><a
+          href="http://www.postgresql.org/docs/9.2/static/sql-dropsequence.html">DROP
+          SEQUENCE</a><br>
+      </li>
+      <li><a
+          href="http://www.postgresql.org/docs/9.2/static/functions-sequence.html">Sequence
+          functions</a><br>
+      </li>
+    </ul>
     <h2>Overview</h2>
     SQLToolKit/Sequence (or STK/Sequence, or just Sequence) is an
     implementation of SQL Sequences which uses MariaDB's Stored
@@ -101,13 +124,68 @@
       `stk_sequence`.sequence_exists('her_sequence'); -- 0</span><br>
     <h2>Routines reference</h2>
     TO-DO: explain routines<br>
+    <h3>Information Routines</h3>
+    <span style="font-family: monospace;">VOID version()</span><br>
+    Returns version info.<br>
     <h3>Sequence Definition</h3>
-    VOID sequence_create(sequence_name, increment, min_value, max_value,
-    cycle, start comment)<br>
-    VOID sequence_alter(sequence_name, increment, min_value, max_value,
-    cycle, start comment)<br>
-    VOID sequence_rename(old_name, new_name)<br>
-    VOID sequence_drop(sequence_name)<br>
+    <span style="font-family: monospace;">VOID
+      sequence_create(sequence_name, increment, min_value, max_value,
+      cycle, start, comment)</span><br>
+    Creates a new Sequence. Parameters are used to set the Sequence's
+    properties, as explained below. For properties having a default
+    value, you can use that default value by passing NULL.<br>
+    <span style="font-weight: bold;">sequence_name</span> is the name of
+    the sequence. Names must be unique. Only ASCII characters can be
+    used. Maximum lenght is 64. No other constraints: '...' is a valid
+    name.<br>
+    <span style="font-weight: bold;">increment</span> is a integer
+    number. Each time you read the current value using next_val(), the
+    increment will be added. It can be a negative number (decrement).
+    Set to 0 to stop the Sequence. Default is 1.<br>
+    <span style="font-weight: bold;">min_value</span> is the minimum
+    value which the Sequence can use. If increment is &gt;= 0, default
+    min_value is 0; else it's (minimum BIGINT SIGNED) + increment.<br>
+    <span style="font-weight: bold;">max_value</span> is the maximum
+    value which the Sequence can use. If increment is &gt;= 0, default
+    max_value is (maximum BIGINT SIGNED) + increment; else, it's -1.<br>
+    <span style="font-weight: bold;">cycle</span> is a BOOLEAN. If it's
+    TRUE, when the current value can not be incremented/decremented
+    anymore, it rotates. Else, it will just raise an error. Please note
+    that is min_value is 1, max_value is 10, increment is 5 and current
+    value is 7, if it can rotate, it will be set to 2. If increment is
+    6, value will be set to 3.<br>
+    <span style="font-weight: bold;">start</span> is the value that will
+    be used when next_val is called for the first time on this Sequence.
+    After this call, this value will never be used again.<br>
+    <span style="font-weight: bold;">comment</span> is a comment that
+    will be associated to the Sequence.<br>
+    <br>
+    <span style="font-family: monospace;">VOID
+      sequence_alter(sequence_name, increment, min_value, max_value,
+      cycle, start, comment)</span><br>
+    Modifies 0 or more properties of the Sequence. See <span
+      style="font-family: monospace;">sequence_create()</span> for a
+    description of the parameters. Please note that NULL means "leave
+    this property unchanged". With <span style="font-family:
+      monospace;">sequence_alter()</span>, if you want to set a property
+    to its default value, you must pass the value explicitly. Also, if
+    you want to rename the Sequence, you need to use <span
+      style="font-family: monospace;">sequence_rename()</span>.<br>
+    <br>
+    <span style="font-family: monospace;">VOID sequence_rename(old_name,
+      new_name)</span><br>
+    Renames the Sequence called old_name to new_name. If the Sequence
+    does not exist, nothing happens.<br>
+    <br>
+    <span style="font-family: monospace;">VOID
+      sequence_drop(sequence_name)</span><br>
+    Drops a Sequence if it exists.<br>
+    <br>
+    <span style="font-family: monospace;">BOOL
+      sequence_exists(sequence_name)</span><br>
+    Returns TRUE if a Sequence called sequence_name exists, else FALSE.<br>
+    <br>
+    VOID sequence_get()<br>
     <h3>Sequence Manipulation/Query</h3>
     BIGINT SIGNED netxval(sequence_name)<br>
     BIGINT SIGNED currval(sequence_name)<br>

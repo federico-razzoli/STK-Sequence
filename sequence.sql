@@ -52,7 +52,8 @@ CREATE DATABASE IF NOT EXISTS `stk_sequence`;
 USE `stk_sequence`;
 
 
-CREATE TABLE IF NOT EXISTS `SEQUENCES` (
+CREATE TABLE IF NOT EXISTS `SEQUENCES`
+(
 	`id`             BIGINT UNSIGNED  NOT NULL   AUTO_INCREMENT,
 	`SEQUENCE_NAME`  CHAR(64)         NOT NULL,
 	`INCREMENT`      INTEGER SIGNED   NOT NULL           COMMENT 'Default: 1',
@@ -305,7 +306,7 @@ BEGIN
 		`value`          BIGINT UNSIGNED               NOT NULL COMMENT 'Value that was read',
 		PRIMARY KEY (`sequence_name`)
 	)
-		ENGINE      = Aria
+		ENGINE      = MEMORY
 		COMMENT     = 'Logs values read by this session, they can be re-read'
 		ROW_FORMAT  = FIXED
 		MIN_ROWS    = 1;
