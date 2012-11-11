@@ -14,7 +14,22 @@
     Routines.<br>
     The implementation follows PostgreSQL's manual pages as a guideline,
     but there are some differences.<br>
-    SQLToolKit/Sequence is thread safe.<br>
+    <br>
+    A Sequence is a database object that acts as a counter. Sequence's
+    values are meat to be unique in the whole server. When you read the
+    next value, the Sequence advances and you can use the value.<br>
+    Sequence's properties are minimum value, maximum value, increment
+    and start value. Usually, increment is +1 and start value is the
+    minimum value. But you can set any increment, even a negative
+    number. If increment is negative, start value is usually the maximum
+    number.<br>
+    A Sequence can be rotating or not-rotating. If a Sequence can
+    rotate, when it reaches the limit it rotates. This means that if the
+    increment is positive, when maximum value is reached, the Sequence
+    restarts from minimum value; if the increment is negative, when
+    minimum value is reached, the Sequence restarts from maximum values.<br>
+    Please note that an increment = 0 is allowed. Usually it does not
+    make sense, but if you know what you are doing you can use it.<br>
     <h2>Credits<br>
     </h2>
     <span style="font-weight: bold;">Contact the author to ask for info,
