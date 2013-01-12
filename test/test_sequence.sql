@@ -64,14 +64,14 @@ CREATE PROCEDURE test_installation()
 	COMMENT 'Test that everything is installed'
 BEGIN
 	CALL `stk_unit`.`assert_table_exists`('stk_sequence', 'SEQUENCES', 'Table SEQUENCES not found');
-	CALL `stk_unit`.`assert_routine_exists`('stk_sequence', 'sequence_create', 'Routine sequence_create not found');
+	CALL `stk_unit`.`assert_routine_exists`('stk_sequence', 'create', 'Routine `create` not found');
 END;
 
 
 DROP PROCEDURE IF EXISTS `test_sequence_create`;
 CREATE PROCEDURE test_sequence_create()
 	LANGUAGE SQL
-	COMMENT 'Test sequence_create, sequence_get'
+	COMMENT 'Test `create`, sequence_get'
 BEGIN
 	-- variables to be passed to sequence_get()
 	DECLARE s_inc      BIGINT;
@@ -81,7 +81,7 @@ BEGIN
 	DECLARE s_comment  TEXT;
 	
 	-- all values explicit
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, TRUE, 150, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, TRUE, 150, 'X');
 	CALL `stk_sequence`.sequence_get('my_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      10,      'my_sequence: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      100,     'my_sequence: wrong s_min');
@@ -91,7 +91,7 @@ BEGIN
 		CONCAT('my_sequence: wrong s_comment, got: ', IFNULL(s_comment, 'NULL')));
 	
 	-- test default values for ASC sequence
-	CALL `stk_sequence`.sequence_create('asc_sequence', NULL, NULL, NULL, NULL, NULL, 'asc');
+	CALL `stk_sequence`.`create`('asc_sequence', NULL, NULL, NULL, NULL, NULL, 'asc');
 	CALL `stk_sequence`.sequence_get('asc_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      1,      'my_sequence: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      1,      'my_sequence: wrong s_min');
@@ -101,7 +101,7 @@ BEGIN
 		CONCAT('my_sequence: wrong s_comment, got: ', IFNULL(s_comment, 'NULL')));
 	
 	-- test default values for DESC sequence
-	CALL `stk_sequence`.sequence_create('desc_sequence', -1, NULL, NULL, NULL, NULL, 'desc');
+	CALL `stk_sequence`.`create`('desc_sequence', -1, NULL, NULL, NULL, NULL, 'desc');
 	CALL `stk_sequence`.sequence_get('desc_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      -1,      'my_sequence: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      -9223372036854775807 - -1,     'my_sequence: wrong s_min');
@@ -119,7 +119,7 @@ END;
 DROP PROCEDURE IF EXISTS `test_sequence_alter`;
 CREATE PROCEDURE test_sequence_alter()
 	LANGUAGE SQL
-	COMMENT 'Test sequence_create, sequence_get'
+	COMMENT 'Test `create`, sequence_get'
 BEGIN
 	-- variables to be passed to sequence_get()
 	DECLARE s_inc      BIGINT;
@@ -129,10 +129,10 @@ BEGIN
 	DECLARE s_comment  TEXT;
 	
 	-- create sequence
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, TRUE, 150, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, TRUE, 150, 'X');
 	
 	-- all values untouched
-	CALL `stk_sequence`.sequence_alter('my_sequence', NULL, NULL, NULL, NULL, NULL);
+	CALL `stk_sequence`.`alter`('my_sequence', NULL, NULL, NULL, NULL, NULL);
 	CALL `stk_sequence`.sequence_get('my_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      10,      'case1: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      100,     'case1: wrong s_min');
@@ -143,7 +143,7 @@ BEGIN
 	
 	-- touch only comment
 	-- (test 1 value)
-	CALL `stk_sequence`.sequence_alter('my_sequence', NULL, NULL, NULL, NULL, '');
+	CALL `stk_sequence`.`alter`('my_sequence', NULL, NULL, NULL, NULL, '');
 	CALL `stk_sequence`.sequence_get('my_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      10,      'case2: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      100,     'case2: wrong s_min');
@@ -154,7 +154,7 @@ BEGIN
 	
 	-- touch all but comment
 	-- (test mixed touch/untouch with more than 1 value modified)
-	CALL `stk_sequence`.sequence_alter('my_sequence', 1, 0, 100, FALSE, NULL);
+	CALL `stk_sequence`.`alter`('my_sequence', 1, 0, 100, FALSE, NULL);
 	CALL `stk_sequence`.sequence_get('my_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      1,       'case3: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      0,       'case3: wrong s_min');
@@ -165,7 +165,7 @@ BEGIN
 	
 	-- touch all
 	-- (test complete list)
-	CALL `stk_sequence`.sequence_alter('my_sequence', -1, -100, 0, TRUE, 'comm');
+	CALL `stk_sequence`.`alter`('my_sequence', -1, -100, 0, TRUE, 'comm');
 	CALL `stk_sequence`.sequence_get('my_sequence', s_inc, s_min, s_max, s_cycle, s_comment);
 	CALL `stk_unit`.assert_equals(s_inc,      -1,      'case4: wrong s_inc');
 	CALL `stk_unit`.assert_equals(s_min,      -100,    'case4: wrong s_min');
@@ -179,30 +179,30 @@ END;
 DROP PROCEDURE IF EXISTS `test_duplicate_sequence`;
 CREATE PROCEDURE test_duplicate_sequence()
 	LANGUAGE SQL
-	COMMENT 'Test sequence_create'
+	COMMENT 'Test "'
 BEGIN
 	-- create
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
 	-- create again
 	CALL `stk_unit`.expect_any_exception();
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
 END;
 
 
 DROP PROCEDURE IF EXISTS `test_sequence_exists`;
 CREATE PROCEDURE test_sequence_exists()
 	LANGUAGE SQL
-	COMMENT 'Test sequence_exists'
+	COMMENT 'Test `exists`'
 BEGIN
 	DECLARE res BOOL;
 	
 	-- exists
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, FALSE, 150, 'X');
-	SET res = `stk_sequence`.sequence_exists('my_sequence');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	SET res = `stk_sequence`.`exists`('my_sequence');
 	CALL `stk_unit`.assert_true(res, 'Sequence exists');
 	
 	-- not exists
-	SET res = `stk_sequence`.sequence_exists('not-exists');
+	SET res = `stk_sequence`.`exists`('not-exists');
 	CALL `stk_unit`.assert_false(res, 'Sequence does not exist');
 END;
 
@@ -210,41 +210,63 @@ END;
 DROP PROCEDURE IF EXISTS `test_sequence_drop`;
 CREATE PROCEDURE test_sequence_drop()
 	LANGUAGE SQL
-	COMMENT 'Test sequence_exists_drop'
+	COMMENT 'Test drop'
 BEGIN
 	DECLARE res BOOL;
 	
 	-- create sequence, drop, and check that not exists
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, FALSE, 150, 'X');
-	CALL `stk_sequence`.sequence_drop('my_sequence');
-	SET res = `stk_sequence`.sequence_exists('not-exists');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	CALL `stk_sequence`.`drop`('my_sequence');
+	SET res = `stk_sequence`.`exists`('not-exists');
 	CALL `stk_unit`.assert_false(res, 'Sequence has not been dropped');
+END;
+
+
+DROP PROCEDURE IF EXISTS `test_sequence_drop_not_exists`;
+CREATE PROCEDURE test_sequence_drop_not_exists()
+	LANGUAGE SQL
+	COMMENT 'Test drop'
+BEGIN
+	-- try to drop non-existing sequence
+	CALL `stk_unit`.expect_any_exception();
+	CALL `stk_sequence`.`drop`('not-exist');
 END;
 
 
 DROP PROCEDURE IF EXISTS `test_sequence_rename`;
 CREATE PROCEDURE test_sequence_rename()
 	LANGUAGE SQL
-	COMMENT 'Test test_sequence_rename'
+	COMMENT 'Test rename'
 BEGIN
 	DECLARE res BOOL;
 	
 	-- create sequence, drop, and check that not exists
-	CALL `stk_sequence`.sequence_create('my_sequence', 10, 100, 350, FALSE, 150, 'X');
-	CALL `stk_sequence`.sequence_rename('my_sequence', 'your_sequence');
+	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	CALL `stk_sequence`.`rename`('my_sequence', 'your_sequence');
 	
 	-- old name must not exist anymore
-	SET res = `stk_sequence`.sequence_exists('my_sequence');
+	SET res = `stk_sequence`.`exists`('my_sequence');
 	CALL `stk_unit`.assert_false(res, 'Old name still exists');
 	
 	-- new name must exist
-	SET res = `stk_sequence`.sequence_exists('your_sequence');
+	SET res = `stk_sequence`.`exists`('your_sequence');
 	CALL `stk_unit`.assert_true(res, 'New name does not exist');
 	
 	-- duplicate error
-	CALL `stk_sequence`.sequence_create('her_sequence', 10, 100, 350, FALSE, 150, 'X');
+	CALL `stk_sequence`.`create`('her_sequence', 10, 100, 350, FALSE, 150, 'X');
 	CALL `stk_unit`.expect_any_exception();
-	CALL `stk_sequence`.sequence_rename('your_sequence', 'her_sequence');
+	CALL `stk_sequence`.`rename`('your_sequence', 'her_sequence');
+END;
+
+
+DROP PROCEDURE IF EXISTS `test_sequence_rename_not_exists`;
+CREATE PROCEDURE test_sequence_rename_not_exists()
+	LANGUAGE SQL
+	COMMENT 'Test rename'
+BEGIN
+	-- try to rename non-existing sequence
+	CALL `stk_unit`.expect_any_exception();
+	CALL `stk_sequence`.`rename`('not-exist', 'their_sequence');
 END;
 
 
@@ -255,7 +277,7 @@ CREATE PROCEDURE test_setval()
 BEGIN
 	DECLARE res BIGINT SIGNED;
 	
-	CALL `stk_sequence`.sequence_create('my_sequence', 1, 1, 100, FALSE, 1, '');
+	CALL `stk_sequence`.`create`('my_sequence', 1, 1, 100, FALSE, 1, '');
 	DO `stk_sequence`.`nextval`('my_sequence'); -- 1
 	
 	-- set to 10, is_called = TRUE
@@ -288,7 +310,7 @@ CREATE PROCEDURE test_nextval_increment()
 	COMMENT 'Test normal increment, not rotation'
 BEGIN
 	-- positive inc
-	CALL `stk_sequence`.sequence_create('my_sequence',
+	CALL `stk_sequence`.`create`('my_sequence',
 		2,      -- increment
 		0,      -- min
 		100,    -- max
@@ -310,7 +332,7 @@ BEGIN
 		CONCAT('nextval: value does not match; expected 4, got: ', IFNULL(@val, 'NULL')));
 	
 	-- negative inc
-	CALL `stk_sequence`.sequence_create('your_sequence',
+	CALL `stk_sequence`.`create`('your_sequence',
 		-10,    -- increment
 		-100,   -- min
 		5,      -- max
@@ -340,7 +362,7 @@ CREATE PROCEDURE test_nextval_start()
 	COMMENT 'Test nextval - start param'
 BEGIN
 	-- test explicit assignment
-	CALL `stk_sequence`.sequence_create('my_sequence',
+	CALL `stk_sequence`.`create`('my_sequence',
 		1,      -- increment
 		1,      -- min
 		100,    -- max
@@ -352,7 +374,7 @@ BEGIN
 		CONCAT('nextval: value does not match; expected 10, got: ', IFNULL(@val, 'NULL')));
 	
 	-- test default for ASC sequence
-	CALL `stk_sequence`.sequence_create('our_sequence',
+	CALL `stk_sequence`.`create`('our_sequence',
 		1,      -- increment
 		1,      -- min
 		100,    -- max
@@ -364,7 +386,7 @@ BEGIN
 		CONCAT('nextval: value does not match; expected 1, got: ', IFNULL(@val, 'NULL')));
 	
 	-- test default for DESC sequence
-	CALL `stk_sequence`.sequence_create('her_sequence',
+	CALL `stk_sequence`.`create`('her_sequence',
 		-1,     -- increment
 		1,      -- min
 		100,    -- max
@@ -383,7 +405,7 @@ CREATE PROCEDURE test_nextval_rotation()
 	COMMENT 'Test nextval - rotation'
 BEGIN
 	-- ASC
-	CALL `stk_sequence`.sequence_create('my_sequence',
+	CALL `stk_sequence`.`create`('my_sequence',
 		3,     -- increment
 		10,    -- min
 		15,    -- max
@@ -403,7 +425,7 @@ BEGIN
 		CONCAT('nextval: value does not match; after rotation expected 10, got: ', IFNULL(@val, 'NULL')));
 	
 	-- DESC
-	CALL `stk_sequence`.sequence_create('their_sequence',
+	CALL `stk_sequence`.`create`('their_sequence',
 		-3,     -- increment
 		-15,    -- min
 		-10,    -- max
@@ -423,7 +445,7 @@ BEGIN
 		CONCAT('nextval: value does not match; after rotation expected -10, got: ', IFNULL(@val, 'NULL')));
 	
 	-- redundant... i know
-	CALL `stk_sequence`.sequence_create('her_sequence',
+	CALL `stk_sequence`.`create`('her_sequence',
 		-5,     -- increment
 		-50,    -- min
 		-10,    -- max
@@ -442,7 +464,7 @@ CREATE PROCEDURE test_nextval_no_rotation_asc()
 	LANGUAGE SQL
 	COMMENT 'Test nextval - rotation not allowed, ASC sequence'
 BEGIN
-	CALL `stk_sequence`.sequence_create('my_sequence',
+	CALL `stk_sequence`.`create`('my_sequence',
 		100,    -- increment
 		1,      -- min
 		1000,   -- max
@@ -461,7 +483,7 @@ CREATE PROCEDURE test_nextval_no_rotation_desc()
 	LANGUAGE SQL
 	COMMENT 'Test nextval - rotation not allowed, DESC sequence'
 BEGIN
-	CALL `stk_sequence`.sequence_create('my_sequence',
+	CALL `stk_sequence`.`create`('my_sequence',
 		-100,   -- increment
 		1000,   -- min
 		1,      -- max
@@ -489,7 +511,7 @@ BEGIN
 		CONCAT('currval: expected NULL, got: ', IFNULL(@val, 'NULL')));
 	
 	-- test for called value
-	CALL `stk_sequence`.sequence_create('my_sequence', 1, 1, 100, TRUE, 1, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 1, 1, 100, TRUE, 1, 'X');
 	SET @val = `stk_sequence`.`nextval`('my_sequence');
 	SET @val = `stk_sequence`.`currval`('my_sequence');
 	CALL `stk_unit`.assert_equals(@val, 1,
@@ -518,7 +540,7 @@ BEGIN
 		CONCAT('lastval: expected NULL, got: ', IFNULL(@val, 'NULL')));
 	
 	-- test for called value
-	CALL `stk_sequence`.sequence_create('my_sequence', 1, 1, 100, TRUE, 1, 'X');
+	CALL `stk_sequence`.`create`('my_sequence', 1, 1, 100, TRUE, 1, 'X');
 	SET @val = `stk_sequence`.`nextval`('my_sequence');
 	SET @val = `stk_sequence`.`lastval`();
 	CALL `stk_unit`.assert_equals(@val, 1,

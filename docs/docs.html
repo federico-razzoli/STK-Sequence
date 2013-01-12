@@ -84,18 +84,18 @@
       my_sequence reaches max_value, it rotates.</span><br
       style="font-family: monospace;">
     <span style="font-family: monospace;">CALL
-      `stk_sequence`.sequence_create('my_sequence', 5, 1, 100, TRUE, 10,
+      `stk_sequence`.`create`('my_sequence', 5, 1, 100, TRUE, 10,
       'This is a comment');</span><br style="font-family: monospace;">
     <span style="font-family: monospace;">-- changed my mind.
       min_value=1000, max_value=5000</span><br style="font-family:
       monospace;">
     <span style="font-family: monospace;">CALL
-      `stk_sequence`.sequence_alter('my_sequence', NULL, 1000, 2000,
+      `stk_sequence`.`alter`('my_sequence', NULL, 1000, 2000,
       NULL, NULL, NULL);</span><br style="font-family: monospace;">
     <span style="font-family: monospace;">-- rename it</span><br
       style="font-family: monospace;">
     <span style="font-family: monospace;">CALL
-      `stk_sequence`.sequence_rename('my_sequence', 'her_sequence');</span><br
+      `stk_sequence`.`rename`('my_sequence', 'her_sequence');</span><br
       style="font-family: monospace;">
     <span style="font-family: monospace;">-- increment value!</span><br
       style="font-family: monospace;">
@@ -123,17 +123,17 @@
     <span style="font-family: monospace;">-- drop sequence</span><br
       style="font-family: monospace;">
     <span style="font-family: monospace;">CALL
-      `stk_sequence`.sequence_drop('her_sequence');</span><br
+      `stk_sequence`.`drop`('her_sequence');</span><br
       style="font-family: monospace;">
     <span style="font-family: monospace;">SELECT
-      `stk_sequence`.sequence_exists('her_sequence'); -- 0</span><br>
+      `stk_sequence`.`exists`('her_sequence'); -- 0</span><br>
     <h2>Routines reference</h2>
     <h3>Information Routines</h3>
     <span style="font-family: monospace;">VOID version()</span><br>
     Returns version info.<br>
     <h3>Sequence Definition</h3>
     <span style="font-family: monospace;">VOID
-      sequence_create(sequence_name, increment, min_value, max_value,
+      create(sequence_name, increment, min_value, max_value,
       cycle, start, comment)</span><br>
     Creates a new Sequence. Parameters are used to set the Sequence's
     properties, as explained below. For properties having a default
@@ -167,33 +167,33 @@
     will be associated to the Sequence.<br>
     <br>
     <span style="font-family: monospace;">VOID
-      sequence_alter(sequence_name, increment, min_value, max_value,
+      alter(sequence_name, increment, min_value, max_value,
       cycle, comment)</span><br>
     Modifies 0 or more properties of the Sequence. See <span
-      style="font-family: monospace;">sequence_create()</span> for a
+      style="font-family: monospace;">create()</span> for a
     description of the parameters. Please note that NULL means "leave
     this property unchanged". With <span style="font-family:
-      monospace;">sequence_alter()</span>, if you want to set a property
+      monospace;">alter()</span>, if you want to set a property
     to its default value, you must pass the value explicitly. The start
     property can not be changed (it would make no sense). Also, if you
     want to rename the Sequence, you need to use <span
-      style="font-family: monospace;">sequence_rename()</span>.<br>
+      style="font-family: monospace;">rename()</span>.<br>
     <br>
-    <span style="font-family: monospace;">VOID sequence_rename(old_name,
+    <span style="font-family: monospace;">VOID `rename`(old_name,
       new_name)</span><br>
     Renames the Sequence called old_name to new_name. If the Sequence
-    does not exist, nothing happens.<br>
+    does not exist, an error is generated.<br>
     <br>
     <span style="font-family: monospace;">VOID
-      sequence_drop(sequence_name)</span><br>
-    Drops a Sequence if it exists.<br>
+      drop(sequence_name)</span><br>
+    Drops a Sequence if it exists; else, an error is generated.<br>
     <br>
     <span style="font-family: monospace;">BOOL
-      sequence_exists(sequence_name)</span><br>
+      exists(sequence_name)</span><br>
     Returns TRUE if a Sequence called sequence_name exists, else FALSE.<br>
     <br>
     <span style="font-family: monospace;">VOID
-      sequence_get(sequence_name, OUT increment, OUT min_value, OUT
+      get(sequence_name, OUT increment, OUT min_value, OUT
       max_value, OUT cycle, OUT comment)</span><br>
     Retrieves info about the Sequence called sequence_name. increment,
     min_value, max_value, cycle and comment will be set with the
@@ -255,7 +255,7 @@
     All Sequences are stored in a `stk_sequence`.`SEQUENCES`. Its column
     names follow the style used for the `information_schema` tables.
     However you should never INSERT/UPDATE/DELETE from `SEQUENCES`.
-    Also, my advice is to use sequence_get(), rather that SELECTing from
+    Also, my advice is to use get(), rather that SELECTing from
     that table.<br>
     <br>
     SELECT ... FOR UPDATE is used internally to lock `SEQUENCES`, which

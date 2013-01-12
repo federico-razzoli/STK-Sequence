@@ -1,6 +1,6 @@
 /*
-    SQLToolKit/Sequence 1.0.2g
-	Copyright Federico Razzoli 2012
+    SQLToolKit/Sequence 1.0.3g
+	Copyright Federico Razzoli 2012 2013
 	
 	This file is part of SQLToolKit/Sequence.
 	
@@ -31,8 +31,8 @@ With the following exceptions:
 * No TEMPORARY sequences
 * Can't SELECT from a SEQUENCE
 * currval() and lastval() dont throw errore - if no value, return NULL
-* sequence_get() and sequence_exists()
-* To CREATE, ALTER and DROP, use sequence_create(), sequence_alter(), sequence_rename(), sequence_drop()
+* get() and exists()
+* To CREATE, ALTER and DROP, use create(), alter(), rename(), drop()
 ** No OWNED BY clause
 ** No CACHE clause
 * nextval() - 3rd param is not optional
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS `SEQUENCES`
 	COMMENT = 'Internal. Contains SEQUENCEs definition & status';
 
 
-DROP PROCEDURE IF EXISTS `sequence_create`;
-CREATE PROCEDURE sequence_create(IN `s_name` CHAR(64),
+DROP PROCEDURE IF EXISTS `create`;
+CREATE PROCEDURE `create`(IN `s_name` CHAR(64),
                                  IN `s_increment` INTEGER, IN `s_minvalue` BIGINT, IN `s_maxvalue` BIGINT,
 								 IN `s_cycle` BOOLEAN, IN `s_start` BIGINT,
 								 IN `s_comment` CHAR(64))
@@ -83,7 +83,7 @@ BEGIN
 	DECLARE CONTINUE HANDLER
 		FOR 1062
 		SIGNAL SQLSTATE VALUE '45000'
-			SET MESSAGE_TEXT = '[stk_sequence.sequence_create] - SEQUENCE already exists';
+			SET MESSAGE_TEXT = '[stk_sequence.create] - SEQUENCE already exists';
 	
 	-- set default values
 	
@@ -135,11 +135,11 @@ BEGIN
 END;
 
 
-DROP PROCEDURE IF EXISTS `sequence_alter`;
-CREATE PROCEDURE sequence_alter(IN `s_name` CHAR(64),
-                                IN `s_increment` INTEGER, IN `s_minvalue` BIGINT, IN `s_maxvalue` BIGINT,
-								IN `s_cycle` BOOLEAN,
-								IN `s_comment` CHAR(64))
+DROP PROCEDURE IF EXISTS `alter`;
+CREATE PROCEDURE `alter`(IN `s_name` CHAR(64),
+                         IN `s_increment` INTEGER, IN `s_minvalue` BIGINT, IN `s_maxvalue` BIGINT,
+						 IN `s_cycle` BOOLEAN,
+						 IN `s_comment` CHAR(64))
 	LANGUAGE SQL
 	COMMENT 'Create a new sequence'
 BEGIN
@@ -154,7 +154,7 @@ BEGIN
 	DECLARE CONTINUE HANDLER
 		FOR 1062
 		SIGNAL SQLSTATE VALUE '45000'
-			SET MESSAGE_TEXT = '[stk_sequence.sequence_alter] - SEQUENCE already exists';
+			SET MESSAGE_TEXT = '[stk_sequence.alter] - SEQUENCE already exists';
 	
 	-- set default values
 	
@@ -227,17 +227,17 @@ BEGIN
 END;
 
 
-DROP PROCEDURE IF EXISTS `sequence_get`;
-CREATE PROCEDURE sequence_get(IN `s_name` CHAR(64),
-                              OUT `s_increment` INTEGER, OUT `s_minvalue` BIGINT, OUT `s_maxvalue` BIGINT,
-							  OUT `s_cycle` BOOLEAN, OUT `s_comment` CHAR(64))
+DROP PROCEDURE IF EXISTS `get`;
+CREATE PROCEDURE `get`(IN `s_name` CHAR(64),
+                       OUT `s_increment` INTEGER, OUT `s_minvalue` BIGINT, OUT `s_maxvalue` BIGINT,
+					   OUT `s_cycle` BOOLEAN, OUT `s_comment` CHAR(64))
 	LANGUAGE SQL
 	COMMENT 'Get info about a SEQUENCE'
 BEGIN
 	DECLARE CONTINUE HANDLER
 		FOR NOT FOUND
 		SIGNAL SQLSTATE VALUE '45000'
-			SET MESSAGE_TEXT = '[stk_sequence.sequence_get] - SEQUENCE does not exists';
+			SET MESSAGE_TEXT = '[stk_sequence.get] - SEQUENCE does not exists';
 	
 	SELECT
 		       `INCREMENT`, `MINVALUE`, `MAXVALUE`, `CYCLE`, `COMMENT`
@@ -247,8 +247,8 @@ BEGIN
 END;
 
 
-DROP FUNCTION IF EXISTS `sequence_exists`;
-CREATE FUNCTION sequence_exists(`s_name` CHAR(64))
+DROP FUNCTION IF EXISTS `exists`;
+CREATE FUNCTION `exists`(`s_name` CHAR(64))
 	RETURNS BOOL
 	NOT DETERMINISTIC
 	LANGUAGE SQL
@@ -264,29 +264,43 @@ BEGIN
 END;
 
 
-DROP PROCEDURE IF EXISTS `sequence_drop`;
-CREATE PROCEDURE sequence_drop(IN `s_name` CHAR(64))
+DROP PROCEDURE IF EXISTS `drop`;
+CREATE PROCEDURE `drop`(IN `s_name` CHAR(64))
 	LANGUAGE SQL
-	COMMENT 'Drop sequence if exists'
+	COMMENT 'Drop sequence'
 BEGIN
+	-- drop
 	DELETE FROM `SEQUENCES` WHERE `SEQUENCE_NAME` = s_name;
+	
+	-- check if 1 has been dropped
+	IF ROW_COUNT() < 1 THEN
+		SIGNAL SQLSTATE VALUE '45000'
+			SET MESSAGE_TEXT = '[stk_sequence.drop] - SEQUENCE does not exists';
+	END IF;
 END;
 
 
-DROP PROCEDURE IF EXISTS `sequence_rename`;
-CREATE PROCEDURE sequence_rename(IN `s_old_name` CHAR(64), IN `s_new_name` CHAR(64))
+DROP PROCEDURE IF EXISTS `rename`;
+CREATE PROCEDURE `rename`(IN `s_old_name` CHAR(64), IN `s_new_name` CHAR(64))
 	LANGUAGE SQL
-	COMMENT 'Rename sequence if exists'
+	COMMENT 'Rename sequence'
 BEGIN
 	-- duplicate sequence error
 	DECLARE CONTINUE HANDLER
 		FOR 1062
 		SIGNAL SQLSTATE VALUE '45000'
-			SET MESSAGE_TEXT = '[stk_sequence.sequence_rename] - SEQUENCE already exists';
+			SET MESSAGE_TEXT = '[stk_sequence.rename] - SEQUENCE already exists';
 	
+	-- rename
 	UPDATE     `stk_sequence`.`SEQUENCES`
 		SET    `SEQUENCE_NAME` = s_new_name
 		WHERE  `SEQUENCE_NAME` = s_old_name;
+	
+	-- check if 1 has been dropped
+	IF ROW_COUNT() < 1 THEN
+		SIGNAL SQLSTATE VALUE '45000'
+			SET MESSAGE_TEXT = '[stk_sequence.rename] - Old SEQUENCE does not exists';
+	END IF;
 END;
 
 
@@ -329,8 +343,16 @@ CREATE FUNCTION setval(`s_name` CHAR(64), `new_value` BIGINT SIGNED, `is_called`
 	COMMENT 'Change current value for a sequence and returns it'
 BEGIN
 	IF (s_name + new_value + is_called) IS NULL THEN
-		SIGNAL SQLSTATE VALUE '45000' SET
-			MESSAGE_TEXT  = '[stk_sequence.setval] At least one argument is NULL';
+		IF s_name IS NULL THEN
+			SIGNAL SQLSTATE VALUE '45000' SET
+				MESSAGE_TEXT  = '[stk_sequence.setval] `s_name` argument is NULL';
+		ELSEIF new_value IS NULL THEN
+			SIGNAL SQLSTATE VALUE '45000' SET
+				MESSAGE_TEXT  = '[stk_sequence.setval] `new_value` argument is NULL';
+		ELSE
+			SIGNAL SQLSTATE VALUE '45000' SET
+				MESSAGE_TEXT  = '[stk_sequence.setval] `is_called` argument is NULL';
+		END IF;
 	END IF;
 	
 	IF is_called IS NOT TRUE THEN
