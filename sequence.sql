@@ -1,5 +1,5 @@
 /*
-    SQLToolKit/Sequence 1.0.3g
+    SQLToolKit/Sequence
 	Copyright Federico Razzoli 2012 2013
 	
 	This file is part of SQLToolKit/Sequence.
@@ -71,12 +71,135 @@ CREATE TABLE IF NOT EXISTS `SEQUENCES`
 	COMMENT = 'Internal. Contains SEQUENCEs definition & status';
 
 
+/**
+ *	Administrative Routines
+ */
+
+
+DROP FUNCTION IF EXISTS `get_version`;
+CREATE FUNCTION `get_version`()
+	RETURNS CHAR(40)
+	LANGUAGE SQL
+	DETERMINISTIC
+	NO SQL
+	COMMENT 'Return version info'
+BEGIN
+	RETURN 'STK/Sequence 1.1.0g';
+END;
+
+
+DROP PROCEDURE IF EXISTS `install_lib`;
+CREATE PROCEDURE `install_lib`()
+	LANGUAGE SQL
+	MODIFIES SQL DATA
+	COMMENT 'Execute this as root before using this lib'
+BEGIN
+	-- add obj user, who can access Internal objects
+	IF NOT EXISTS (SELECT 1 FROM `mysql`.`user` WHERE `User` = 'obj_stk_sequence') THEN
+		CREATE USER 'obj_stk_sequence'@'localhost';
+	END IF;
+	GRANT EXECUTE ON `stk_sequence`.* TO 'obj_stk_sequence'@'localhost';
+	GRANT SELECT, LOCK TABLES, CREATE TEMPORARY TABLES, INSERT, UPDATE, DELETE ON `stk_sequence`.* TO 'obj_stk_sequence'@'localhost';
+END;
+
+
+DROP PROCEDURE IF EXISTS `uninstall_lib`;
+CREATE PROCEDURE `uninstall_lib`()
+	LANGUAGE SQL
+	MODIFIES SQL DATA
+	COMMENT 'Execute this as root before using this lib'
+BEGIN
+	-- drop & revoke obj user
+	IF EXISTS (SELECT 1 FROM `mysql`.`user` WHERE `User` = 'obj_stk_sequence') THEN
+		REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'obj_stk_sequence'@'localhost';
+		DROP USER 'obj_stk_sequence'@'localhost';
+	END IF;
+END;
+
+
+DROP PROCEDURE IF EXISTS `grant_to`;
+CREATE PROCEDURE `grant_to`(IN `username` CHAR(80))
+	LANGUAGE SQL
+	MODIFIES SQL DATA
+	COMMENT 'Grant someone the right to use this lib'
+BEGIN
+	DECLARE `eof`       BOOL      DEFAULT FALSE;
+	DECLARE `obj_name`  CHAR(64)  DEFAULT '';
+	
+	DECLARE `cur_routines` CURSOR FOR
+		SELECT `ROUTINE_NAME`
+			FROM `information_schema`.`ROUTINES`
+			WHERE `ROUTINE_SCHEMA` = 'stk_sequence'
+				AND `ROUTINE_NAME` NOT IN ('grant_to', 'install')
+				AND `ROUTINE_COMMENT` NOT LIKE 'Internal.%';
+	
+	DECLARE `cur_tables` CURSOR FOR
+		SELECT `TABLE_NAME`
+			FROM `information_schema`.`TABLES`
+			WHERE `TABLE_SCHEMA` = 'stk_sequence'
+				AND `TABLE_COMMENT` NOT LIKE 'Internal.%';
+	
+	DECLARE CONTINUE HANDLER FOR
+		NOT FOUND
+		SET `eof` = TRUE;
+	
+	
+	-- grant permissions on routines
+	
+	OPEN `cur_routines`;
+	
+	`lp_routines`:
+	LOOP
+		FETCH NEXT FROM `cur_routines` INTO `obj_name`;
+		
+		IF `eof` IS NOT FALSE THEN
+			LEAVE `lp_routines`;
+		END IF;
+		
+		SET @`stk.sequence.sql` = CONCAT('GRANT EXECUTE ON PROCEDURE `stk_sequence`.`', `obj_name`, '` TO ''', `username`,'''@''%'';');
+		
+		PREPARE __STK_stmt_grant FROM @`stk.sequence.sql`;
+		EXECUTE __STK_stmt_grant;
+		DEALLOCATE PREPARE __STK_stmt_grant;
+	END LOOP;
+	
+	CLOSE `cur_routines`;
+	
+	-- grant permissions on tables
+	
+	OPEN `cur_tables`;
+	
+	`lp_tables`:
+	LOOP
+		FETCH NEXT FROM `cur_tables` INTO `obj_name`;
+		
+		IF `eof` IS NOT FALSE THEN
+			LEAVE `lp_tables`;
+		END IF;
+		
+		SET @`stk.sequence.sql` = CONCAT('GRANT EXECUTE ON PROCEDURE `stk_sequence`.`', `obj_name`, '` TO ''', `username`,'''@''%'';');
+		
+		PREPARE __STK_stmt_grant FROM @`stk.sequence.sql`;
+		EXECUTE __STK_stmt_grant;
+		DEALLOCATE PREPARE __STK_stmt_grant;
+	END LOOP;
+	
+	CLOSE `cur_tables`;
+END;
+
+
+/**
+ *		Core
+ */
+
+
 DROP PROCEDURE IF EXISTS `create`;
-CREATE PROCEDURE `create`(IN `s_name` CHAR(64),
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `create`(IN `s_name` CHAR(64),
                                  IN `s_increment` INTEGER, IN `s_minvalue` BIGINT, IN `s_maxvalue` BIGINT,
 								 IN `s_cycle` BOOLEAN, IN `s_start` BIGINT,
 								 IN `s_comment` CHAR(64))
 	LANGUAGE SQL
+	MODIFIES SQL DATA
 	COMMENT 'Create a new sequence'
 BEGIN
 	-- duplicate sequence error
@@ -122,6 +245,11 @@ BEGIN
 		SET `s_cycle` = FALSE;
 	END IF;
 	
+	-- default comment
+	IF `s_comment` IS NULL THEN
+		SET `s_comment` = '';
+	END IF;
+	
 	-- create sequence
 	INSERT INTO `SEQUENCES`
 		SET
@@ -136,11 +264,12 @@ END;
 
 
 DROP PROCEDURE IF EXISTS `alter`;
-CREATE PROCEDURE `alter`(IN `s_name` CHAR(64),
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `alter`(IN `s_name` CHAR(64),
                          IN `s_increment` INTEGER, IN `s_minvalue` BIGINT, IN `s_maxvalue` BIGINT,
 						 IN `s_cycle` BOOLEAN,
 						 IN `s_comment` CHAR(64))
 	LANGUAGE SQL
+	MODIFIES SQL DATA
 	COMMENT 'Create a new sequence'
 BEGIN
 	-- UPDATE SET clause
@@ -228,10 +357,11 @@ END;
 
 
 DROP PROCEDURE IF EXISTS `get`;
-CREATE PROCEDURE `get`(IN `s_name` CHAR(64),
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `get`(IN `s_name` CHAR(64),
                        OUT `s_increment` INTEGER, OUT `s_minvalue` BIGINT, OUT `s_maxvalue` BIGINT,
 					   OUT `s_cycle` BOOLEAN, OUT `s_comment` CHAR(64))
 	LANGUAGE SQL
+	READS SQL DATA
 	COMMENT 'Get info about a SEQUENCE'
 BEGIN
 	DECLARE CONTINUE HANDLER
@@ -248,14 +378,15 @@ END;
 
 
 DROP FUNCTION IF EXISTS `exists`;
-CREATE FUNCTION `exists`(`s_name` CHAR(64))
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' FUNCTION `exists`(`s_name` CHAR(64))
 	RETURNS BOOL
 	NOT DETERMINISTIC
+	READS SQL DATA
 	LANGUAGE SQL
 	COMMENT 'Return TRUE if SEQUENCE exists, else FALSE'
 BEGIN
 	RETURN (
-		SELECT EXISTS (
+		EXISTS (
 			SELECT 1
 				FROM   `stk_sequence`.`SEQUENCES`
 				WHERE  `SEQUENCE_NAME` = s_name
@@ -265,8 +396,9 @@ END;
 
 
 DROP PROCEDURE IF EXISTS `drop`;
-CREATE PROCEDURE `drop`(IN `s_name` CHAR(64))
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `drop`(IN `s_name` CHAR(64))
 	LANGUAGE SQL
+	MODIFIES SQL DATA
 	COMMENT 'Drop sequence'
 BEGIN
 	-- drop
@@ -281,8 +413,9 @@ END;
 
 
 DROP PROCEDURE IF EXISTS `rename`;
-CREATE PROCEDURE `rename`(IN `s_old_name` CHAR(64), IN `s_new_name` CHAR(64))
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `rename`(IN `s_old_name` CHAR(64), IN `s_new_name` CHAR(64))
 	LANGUAGE SQL
+	MODIFIES SQL DATA
 	COMMENT 'Rename sequence'
 BEGIN
 	-- duplicate sequence error
@@ -290,6 +423,11 @@ BEGIN
 		FOR 1062
 		SIGNAL SQLSTATE VALUE '45000'
 			SET MESSAGE_TEXT = '[stk_sequence.rename] - SEQUENCE already exists';
+	
+	IF `s_old_name` IS NULL OR `s_new_name` IS NULL OR `s_old_name` = `s_new_name` THEN
+		SIGNAL SQLSTATE VALUE '45000'
+			SET MESSAGE_TEXT = '[stk_sequence.rename] - Invalid parameters';
+	END IF;
 	
 	-- rename
 	UPDATE     `stk_sequence`.`SEQUENCES`
@@ -305,8 +443,9 @@ END;
 
 
 DROP PROCEDURE IF EXISTS `log_value`;
-CREATE PROCEDURE `log_value`(IN `s_name` CHAR(64), IN `val` BIGINT SIGNED)
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `log_value`(IN `s_name` CHAR(64), IN `val` BIGINT SIGNED)
 	LANGUAGE SQL
+	MODIFIES SQL DATA
 	COMMENT 'Internal. Log last generated value'
 BEGIN
 	-- session log table may not exist
@@ -335,9 +474,9 @@ END;
 -- Does not validate the value.
 -- If is_called is FALSE, when nextval() is called, the value will advance before returning.
 DROP FUNCTION IF EXISTS `setval`;
-CREATE FUNCTION setval(`s_name` CHAR(64), `new_value` BIGINT SIGNED, `is_called` BOOL)
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' FUNCTION setval(`s_name` CHAR(64), `new_value` BIGINT SIGNED, `is_called` BOOL)
 	RETURNS BIGINT SIGNED
-	DETERMINISTIC
+	NOT DETERMINISTIC
 	MODIFIES SQL DATA
 	LANGUAGE SQL
 	COMMENT 'Change current value for a sequence and returns it'
@@ -381,9 +520,10 @@ END;
 
 
 DROP FUNCTION IF EXISTS `nextval`;
-CREATE FUNCTION `nextval`(`s_name` CHAR(64))
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' FUNCTION `nextval`(`s_name` CHAR(64))
 	RETURNS BIGINT SIGNED
 	NOT DETERMINISTIC
+	MODIFIES SQL DATA
 	LANGUAGE SQL
 	COMMENT 'Advance a sequence and return new value'
 BEGIN
@@ -460,7 +600,7 @@ END;
 
 
 DROP FUNCTION IF EXISTS `currval`;
-CREATE FUNCTION `currval`(`s_name` CHAR(64))
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' FUNCTION `currval`(`s_name` CHAR(64))
 	RETURNS BIGINT SIGNED
 	LANGUAGE SQL
 	NOT DETERMINISTIC
@@ -487,7 +627,7 @@ END;
 
 
 DROP FUNCTION IF EXISTS `lastval`;
-CREATE FUNCTION `lastval`()
+CREATE DEFINER = 'obj_stk_sequence'@'localhost' FUNCTION `lastval`()
 	RETURNS BIGINT SIGNED
 	LANGUAGE SQL
 	NOT DETERMINISTIC
@@ -511,18 +651,6 @@ BEGIN
 				ORDER BY  `timestamp` DESC
 				LIMIT     1
 		);
-END;
-
-
-DROP FUNCTION IF EXISTS `get_version`;
-CREATE FUNCTION `get_version`()
-	RETURNS CHAR(40)
-	LANGUAGE SQL
-	DETERMINISTIC
-	NO SQL
-	COMMENT 'Return version info'
-BEGIN
-	RETURN 'STK/Sequence 1.0.2g';
 END;
 
 
