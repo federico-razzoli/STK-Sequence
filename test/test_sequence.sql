@@ -47,6 +47,13 @@ BEGIN
 END;
 
 
+CREATE PROCEDURE before_all_tests()
+	LANGUAGE SQL
+BEGIN
+	CALL `stk_sequence`.`install_lib`();
+END;
+
+
 CREATE PROCEDURE after_all_tests()
 	LANGUAGE SQL
 BEGIN
