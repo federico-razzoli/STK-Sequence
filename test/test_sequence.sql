@@ -223,9 +223,12 @@ BEGIN
 	
 	-- create sequence, drop, and check that not exists
 	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	DO `stk_sequence`.`nextval`('my_sequence');
 	CALL `stk_sequence`.`drop`('my_sequence');
 	SET res = `stk_sequence`.`exists`('not-exists');
 	CALL `stk_unit`.assert_false(res, 'Sequence has not been dropped');
+	CALL `stk_unit`.assert_null(`stk_sequence`.`currval`('my_sequence'), 'my_sequence has been dropped, so currval(\'my_sequence\') should be null');
+	CALL `stk_unit`.assert_true(`stk_sequence`.`lastval`() = 150, 'my_sequence has been dropped, but its lastval(\'my_sequence\') is still the last generated value');
 END;
 
 
@@ -249,6 +252,7 @@ BEGIN
 	
 	-- create sequence, drop, and check that not exists
 	CALL `stk_sequence`.`create`('my_sequence', 10, 100, 350, FALSE, 150, 'X');
+	DO `stk_sequence`.`nextval`('my_sequence');
 	CALL `stk_sequence`.`rename`('my_sequence', 'your_sequence');
 	
 	-- old name must not exist anymore
@@ -258,6 +262,10 @@ BEGIN
 	-- new name must exist
 	SET res = `stk_sequence`.`exists`('your_sequence');
 	CALL `stk_unit`.assert_true(res, 'New name does not exist');
+	
+	-- check currval() & lastval()
+	CALL `stk_unit`.assert_null(`stk_sequence`.`currval`('my_sequence'), 'my_sequence has been renamed, so currval(\'my_sequence\') should be null');
+	CALL `stk_unit`.assert_true(`stk_sequence`.`lastval`() = 150, 'my_sequence has been renamed, but its lastval(\'my_sequence\') is still the last generated value');
 	
 	-- duplicate error
 	CALL `stk_sequence`.`create`('her_sequence', 10, 100, 350, FALSE, 150, 'X');
