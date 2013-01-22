@@ -401,6 +401,11 @@ CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `drop`(IN `s_name` CHA
 	MODIFIES SQL DATA
 	COMMENT 'Drop sequence'
 BEGIN
+	-- maybe sequence_session_log not exists
+	DECLARE CONTINUE HANDLER
+		FOR 1146
+		DO NULL;
+	
 	-- drop
 	DELETE FROM `SEQUENCES` WHERE `SEQUENCE_NAME` = s_name;
 	
@@ -409,6 +414,10 @@ BEGIN
 		SIGNAL SQLSTATE VALUE '45000'
 			SET MESSAGE_TEXT = '[stk_sequence.drop] - SEQUENCE does not exists';
 	END IF;
+	
+	-- delete cache for currval/nextval()
+	DELETE FROM `stk_sequence`.`sequence_session_log`
+		WHERE `sequence_name` = s_name;
 END;
 
 
@@ -418,6 +427,11 @@ CREATE DEFINER = 'obj_stk_sequence'@'localhost' PROCEDURE `rename`(IN `s_old_nam
 	MODIFIES SQL DATA
 	COMMENT 'Rename sequence'
 BEGIN
+	-- maybe sequence_session_log not exists
+/*	DECLARE CONTINUE HANDLER
+		FOR 1146
+		DO NULL;*/
+	
 	-- duplicate sequence error
 	DECLARE CONTINUE HANDLER
 		FOR 1062
@@ -439,6 +453,11 @@ BEGIN
 		SIGNAL SQLSTATE VALUE '45000'
 			SET MESSAGE_TEXT = '[stk_sequence.rename] - Old SEQUENCE does not exists';
 	END IF;
+	
+	-- rename in recent values cache
+/*	UPDATE     `stk_sequence`.`sequence_session_log`
+		SET    `sequence_name` = s_new_name
+		WHERE  `sequence_name` = s_old_name;*/
 END;
 
 
